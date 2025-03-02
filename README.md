@@ -18,7 +18,7 @@ and set a default bang to be used if there are no bangs in the query.
 ### Location
 Configuration is named `banger.toml`.
 It is searched for in [$XDG\_CONFIG\_HOME](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables)
-and `/etc`, in mentioned order.
+and `/etc`, in mentioned order. (TODO!)
 
 ### Format
 Banger uses [TOML](https://toml.io).
@@ -62,17 +62,14 @@ Here, we can see three configurations, with DuckDuckGo selected as a default:
 - [Ukrainian Wikipedia](https://uk.wikipedia.org), with three bang aliases,
     some with Unicode symbols, and a query
 
-## Building
-
-### Tools
-- git
-- cmake
-- g++
-
-Clone the repo and run:
-```sh
-mkdir build && cd build
-cmake .. # -DCMAKE_BUILD_TYPE=[Debug|Release|...]
-make
-make test
+## Building and running
+Can be build with `cargo`, for example:
+```shell
+cargo build
 ```
+
+Program takes 2 CLI arguments: config file and address to bind to. Example:
+```shell
+cargo run banger.toml 0.0.0.0:8080
+```
+
