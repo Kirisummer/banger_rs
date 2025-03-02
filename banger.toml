@@ -1,0 +1,13 @@
+default='duckduckgo'
+
+[[bangs]]
+aliases = ['duckduckgo', 'ddg']
+query = 'https://duckduckgo.com/?q={}'
+
+[[bangs]]
+aliases = ['wikipedia', 'wiki', 'w']
+query = 'https://en.wikipedia.org/w/?search={}'
+
+[[bangs]]
+aliases = ['вікі', 'в', 'ukwiki']
+query = 'https://uk.wikipedia.org/w/?search={}'
