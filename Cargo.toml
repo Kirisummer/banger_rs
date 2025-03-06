@@ -5,4 +5,3 @@ edition = "2024"
 
 [dependencies]
 toml = "0.8.20"
-socket = "0.0.7"
