@@ -44,15 +44,15 @@ Each bang table consists of `aliases` and `query` pairs.
 default='duckduckgo'
 
 [[bangs]]
-bangs = ['duckduckgo', 'ddg']
+aliases = ['duckduckgo', 'ddg']
 query = 'https://duckduckgo.com/?q={}'
 
 [[bangs]]
-bangs = ['wikipedia', 'wiki', 'w']
+aliases = ['wikipedia', 'wiki', 'w']
 query = 'https://en.wikipedia.org/w/?search={}'
 
 [[bangs]]
-bangs = ['вікі', 'в', 'ukwiki']
+aliases = ['вікі', 'в', 'ukwiki']
 query = 'https://uk.wikipedia.org/w/?search={}'
 ```
 
@@ -63,7 +63,7 @@ Here, we can see three configurations, with DuckDuckGo selected as a default:
     some with Unicode symbols, and a query
 
 ## Building and running
-Can be build with `cargo`, for example:
+Can be built with `cargo`, for example:
 ```shell
 cargo build
 ```
