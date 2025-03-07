@@ -97,6 +97,14 @@ impl Response {
         for (name, value) in self.headers.iter() {
             headers_block.push_str(&format!("{name}: {value}{NEWLINE}"));
         }
-        format!("{} {}{}{}{}{}", self.proto, self.status.msg(), NEWLINE, headers_block, NEWLINE, body)
+        format!(
+            "{} {}{}{}{}{}",
+            self.proto,
+            self.status.msg(),
+            NEWLINE,
+            headers_block,
+            NEWLINE,
+            body
+        )
     }
 }

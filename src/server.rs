@@ -1,22 +1,21 @@
-use std::io::{Read, Write, ErrorKind};
-use std::net::{TcpListener, TcpStream, Shutdown};
+use std::io::{ErrorKind, Read, Write};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
 
 use crate::bang_storage::BangStorage;
-use crate::request::{parse_query, QueryErr};
+use crate::request::{QueryErr, parse_query};
 use crate::response::{Response, StatusCode, encode};
 
 fn process_query(
     storage: &BangStorage,
-    query: &str,
+    query: Vec<String>,
     encoder: &dyn Fn(&str) -> String,
 ) -> String {
     let mut bang_opt = None;
     let mut query_parts = vec![];
 
-    let split = query.split(' ');
-    for token in split.filter(|line| !line.is_empty()) {
+    for token in query.iter().filter(|line| !line.is_empty()) {
         if token.len() == 0 {
             continue;
         }
@@ -43,25 +42,26 @@ fn process_request(storage: &BangStorage, request: &str) -> String {
     const PROTO: &str = "HTTP/1.1";
     match parse_query(&request) {
         Ok(query) => {
-            let response_url = process_query(&storage, &query, &encode);
+            let response_url = process_query(&storage, query, &encode);
             let mut response = Response::new(PROTO, StatusCode::SeeOther);
             response.header("Location", &response_url);
             response
-        },
+        }
         Err(err) => match err {
             QueryErr::BadRequest(err) => {
                 let mut response = Response::new(PROTO, StatusCode::BadRequest);
                 response.header("Content-Type", "text/plain");
                 response.body(&err);
                 response
-            },
+            }
             QueryErr::MethodNotAllowed => {
                 let mut response = Response::new(PROTO, StatusCode::MethodNotAllowed);
                 response.header("Allow", "GET, HEAD");
                 response
             }
-        }
-    }.make()
+        },
+    }
+    .make()
 }
 
 fn read_all(stream: &mut TcpStream) -> Result<Vec<u8>, String> {
@@ -75,12 +75,12 @@ fn read_all(stream: &mut TcpStream) -> Result<Vec<u8>, String> {
                 if read_count < BUFFER_SIZE {
                     break;
                 }
-            },
+            }
             Err(err) => {
                 if err.kind() == ErrorKind::WouldBlock {
                     continue;
                 } else {
-                    return Err(err.to_string())
+                    return Err(err.to_string());
                 }
             }
         }
@@ -112,7 +112,7 @@ fn serve_one(storage: Arc<BangStorage>, mut stream_arc: Arc<TcpStream>) -> () {
     // Process
     let request = match String::from_utf8(request_bytes) {
         Ok(v) => v,
-        Err(_) => "".to_string()
+        Err(_) => "".to_string(),
     };
     eprintln!("Got request: {:?}", request);
     let response = process_request(&storage, &request);
