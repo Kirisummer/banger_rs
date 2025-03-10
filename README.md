@@ -12,8 +12,9 @@ configured as a search engine in browsers.
 [License](/LICENSE)
 
 ## Configuration
-Configuration files may used to configure bangs Banger uses,
-and set a default bang to be used if there are no bangs in the query.
+Configuration files are used to configure bangs Banger uses,
+set a default bang to be used if there are no bangs in the query,
+and define a default address the server will be listening on.
 
 ### Location
 Configuration is named `banger.toml`.
@@ -25,9 +26,11 @@ Banger uses [TOML](https://toml.io).
 Configuration file is a valid UTF-8 encoded Unicode document.
 Values and keys are case-sensitive.
 
-Configuration file consists of `default` key-value pair, and `bangs`,
+Configuration file consists of `default` and `address` key-value pairs, and `bangs`,
 an array of tables for each bang.
-Every mentioned key-value pair is required.
+`address` is optional, every other mentioned key-value pair is required.
+
+Value of `address` must be a string in format `<IP address>:<port>`.
 
 Value of `default` must be a string that corresponds to one of the bangs
 from `bangs` array.
@@ -41,6 +44,7 @@ Each bang table consists of `aliases` and `query` pairs.
 
 ### Example configuration
 ```toml
+address='127.0.0.1:8080'
 default='duckduckgo'
 
 [[bangs]]
@@ -62,6 +66,8 @@ Here, we can see three configurations, with DuckDuckGo selected as a default:
 - [Ukrainian Wikipedia](https://uk.wikipedia.org), with three bang aliases,
     some with Unicode symbols, and a query
 
+Address is set to 127.0.0.1 with port 8080.
+
 ## Building and running
 Can be built with `cargo`, for example:
 ```shell
@@ -70,6 +76,9 @@ cargo build
 
 Program takes 2 CLI arguments: config file and address to bind to. Examples:
 ```shell
+# Read address from config
+cargo run -- -c banger.toml
+# Specify address as CLI argument
 cargo run -- --config banger.toml --address 0.0.0.0:8080
 cargo run -- -c banger.toml -a 0.0.0.0:8080
 ```

@@ -1,6 +1,6 @@
 use std::fs;
-use std::path::PathBuf;
 use std::net::SocketAddr;
+use std::path::PathBuf;
 
 use clap::Parser;
 use toml::Table;
@@ -22,21 +22,38 @@ struct Args {
     config: PathBuf,
     /// Address and port to bind to in <IP address>:<port> format
     #[arg(short, long)]
-    address: SocketAddr,
+    address: Option<SocketAddr>,
+}
+
+fn get_address_from_config(table: &Table) -> Result<SocketAddr, String> {
+    let value = table
+        .get("address")
+        .ok_or("Address is missing from config".to_string())?;
+    let addr_str = value
+        .as_str()
+        .ok_or(format!("Address is not a string: {:?}", value))?;
+    let addr = addr_str
+        .parse::<SocketAddr>()
+        .map_err(|_err| format!("Failed to parse {addr_str} into socket address"))?;
+    Ok(addr)
 }
 
 fn main() -> Result<(), String> {
     // Read CLI arguments
     let args = Args::parse();
-    let config_path = args.config;
-    let listen_address = args.address;
 
     // Parse config
-    let content =
-        fs::read_to_string(&config_path).map_err(|err| format!("{}: {}", config_path.display(), err))?;
+    eprintln!("Reading config from {}", args.config.display());
+    let content = fs::read_to_string(&args.config)
+        .map_err(|err| format!("{}: {}", args.config.display(), err))?;
     let table = content.parse::<Table>().map_err(|err| format!("{err}"))?;
     let storage = BangStorage::from_table(&table)?;
 
     // Serve
+    let listen_address = match args.address {
+        Some(addr) => addr,
+        None => get_address_from_config(&table)?,
+    };
+    eprintln!("Listening on {listen_address}");
     serve(storage, listen_address)
 }
