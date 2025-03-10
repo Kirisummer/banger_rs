@@ -1,5 +1,5 @@
 use std::io::{ErrorKind, Read, Write};
-use std::net::{Shutdown, TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream, SocketAddr};
 use std::sync::Arc;
 use std::thread;
 
@@ -133,7 +133,7 @@ fn serve_one(storage: Arc<BangStorage>, mut stream_arc: Arc<TcpStream>) -> () {
     shutdown(&mut stream);
 }
 
-pub fn serve(storage: BangStorage, address: &str) -> Result<(), String> {
+pub fn serve(storage: BangStorage, address: SocketAddr) -> Result<(), String> {
     let storage_arc = Arc::new(storage);
     let listener = TcpListener::bind(address).map_err(|err| format!("{err}"))?;
     for stream_res in listener.incoming() {
