@@ -68,8 +68,9 @@ Can be built with `cargo`, for example:
 cargo build
 ```
 
-Program takes 2 CLI arguments: config file and address to bind to. Example:
+Program takes 2 CLI arguments: config file and address to bind to. Examples:
 ```shell
-cargo run banger.toml 0.0.0.0:8080
+cargo run -- --config banger.toml --address 0.0.0.0:8080
+cargo run -- -c banger.toml -a 0.0.0.0:8080
 ```
 
