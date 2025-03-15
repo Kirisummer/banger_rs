@@ -43,11 +43,7 @@ pub struct XdgLookup {
 }
 
 impl XdgLookup {
-    fn new() -> Self {
-        Self::new_custom(&real_env_var)
-    }
-
-    fn new_custom(env_var: &dyn Fn(&str) -> Option<String>) -> Self {
+    fn new(env_var: &dyn Fn(&str) -> Option<String>) -> Self {
         Self {
             home_dir: Self::parse_absolute(env_var("HOME").as_deref()),
             xdg_config_home: Self::parse_absolute(env_var("XDG_CONFIG_HOME").as_deref()),
@@ -142,7 +138,7 @@ impl ConfigLookup {
         Self {
             cli_config: cli_config,
             env_config: env_var("BANGER_CONFIG").as_deref().map(PathBuf::from),
-            xdg: XdgLookup::new(),
+            xdg: XdgLookup::new(&env_var),
             binary_path: binary_path,
         }
     }
