@@ -5,6 +5,9 @@ use std::path::PathBuf;
 use clap::Parser;
 use toml::Table;
 
+mod config_lookup;
+use crate::config_lookup::{Env, xdg_config_location};
+
 mod bang_storage;
 use crate::bang_storage::BangStorage;
 
@@ -19,7 +22,7 @@ mod response;
 struct Args {
     /// Path of config file for banger
     #[arg(short, long)]
-    config: PathBuf,
+    config: Option<PathBuf>,
     /// Address and port to bind to in <IP address>:<port> format
     #[arg(short, long)]
     address: Option<SocketAddr>,
@@ -43,9 +46,11 @@ fn main() -> Result<(), String> {
     let args = Args::parse();
 
     // Parse config
-    eprintln!("Reading config from {}", args.config.display());
-    let content = fs::read_to_string(&args.config)
-        .map_err(|err| format!("{}: {}", args.config.display(), err))?;
+    let config_path =
+        xdg_config_location(Env::new(args.config)).ok_or("Failed to find config".to_string())?;
+    eprintln!("Reading config from {}", config_path.display());
+    let content = fs::read_to_string(&config_path)
+        .map_err(|err| format!("{}: {}", config_path.display(), err))?;
     let table = content.parse::<Table>().map_err(|err| format!("{err}"))?;
     let storage = BangStorage::from_table(&table)?;
 
