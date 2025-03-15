@@ -155,11 +155,15 @@ impl ConfigLookup {
         if let Some(path) = &self.cli_config {
             if file_exists(path) {
                 return Some(path.to_path_buf());
+            } else {
+                return None;
             }
         }
         if let Some(path) = &self.env_config {
             if file_exists(path) {
                 return Some(path.to_path_buf());
+            } else {
+                return None;
             }
         }
         if let Some(path) = &self.xdg.lookup(dir_exists, file_exists) {
