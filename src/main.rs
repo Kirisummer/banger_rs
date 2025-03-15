@@ -46,7 +46,9 @@ fn main() -> Result<(), String> {
     let args = Args::parse();
 
     // Parse config
-    let config_path = ConfigLookup::new(args.config).lookup().ok_or("Failed to find config".to_string())?;
+    let config_path = ConfigLookup::new(args.config)
+        .lookup()
+        .ok_or("Failed to find config".to_string())?;
     eprintln!("Reading config from {}", config_path.display());
 
     let content = fs::read_to_string(&config_path)
