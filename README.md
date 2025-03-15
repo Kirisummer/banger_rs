@@ -30,9 +30,6 @@ Otherwise, it is searched for in following order:
 Names with `$` are environment variables.
 For locations 2-6, Banger attempts to implement [XDG base directory specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables).
 
-
-Also, config is searched for in directory where the binary is located as a last resort.
-
 ### Format
 Banger uses [TOML](https://toml.io).
 Configuration file is a valid UTF-8 encoded Unicode document.
