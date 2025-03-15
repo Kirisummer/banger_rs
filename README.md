@@ -17,9 +17,21 @@ set a default bang to be used if there are no bangs in the query,
 and define a default address the server will be listening on.
 
 ### Location
-Configuration is named `banger.toml`.
-It is searched for in [$XDG\_CONFIG\_HOME](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables)
-and `/etc`, in mentioned order. (TODO!)
+Configuration is named `banger.toml`. It may be passed with `--config` or `-c` CLI option.
+Otherwise, it is searched for in following order:
+1. `$BANGER_CONFIG`
+2. `$XDG_CONFIG_HOME/banger/banger.toml`
+3. `$HOME/.config/banger/banger.toml`
+4. `<dir>/banger/banger.toml`, `dir` is taken from `$XDG_CONFIG_DIRS` list, where directories are split by `:`
+5. `$sysconfdir/xdg/banger/banger.toml`
+6. `/etc/xdg/banger/banger.toml`
+7. `<directory_with_binary>/banger.toml`
+
+Names with `$` are environment variables.
+For locations 2-6, Banger attempts to implement [XDG base directory specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html#variables).
+
+
+Also, config is searched for in directory where the binary is located as a last resort.
 
 ### Format
 Banger uses [TOML](https://toml.io).
@@ -76,6 +88,10 @@ cargo build
 
 Program takes 2 CLI arguments: config file and address to bind to. Examples:
 ```shell
+# Lookup config
+cargo run
+# Override address
+cargo run --address 0.0.0.0:8080
 # Read address from config
 cargo run -- -c banger.toml
 # Specify address as CLI argument
