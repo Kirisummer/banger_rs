@@ -176,3 +176,191 @@ impl ConfigLookup {
         None
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CLI_CONFIG: &str = "cli_banger.toml";
+    const ENV_CONFIG: &str = "env_banger.toml";
+    const XDG_CONFIG_HOME: &str = "/CONFIG_HOME";
+    const HOME: &str = "/HOME";
+    const XDG_CONFIG_DIRS: &str = "/CONFIG_DIR1:/CONFIG_DIR2";
+    const SYSCONFDIR: &str = "/SYSCONF";
+
+    const XDG_CONFIG_HOME_FILE: &str = "/CONFIG_HOME/banger/banger.toml";
+    const HOME_FILE: &str = "/HOME/.config/banger/banger.toml";
+    const XDG_CONFIG_DIRS_FILE: &str = "/CONFIG_DIR2/banger/banger.toml";
+    const SYSCONFDIR_FILE: &str = "/SYSCONF/xdg/banger/banger.toml";
+    const ETC_XDG_FILE: &str = "/etc/xdg/banger/banger.toml";
+    const BINARY_DIR_FILE: &str = "/BINARY_DIR/banger.toml";
+
+    const CONFIG_FILES: [&str; 8] = [
+        CLI_CONFIG,
+        ENV_CONFIG,
+        XDG_CONFIG_HOME_FILE,
+        HOME_FILE,
+        XDG_CONFIG_DIRS_FILE,
+        SYSCONFDIR_FILE,
+        ETC_XDG_FILE,
+        BINARY_DIR_FILE
+    ];
+
+    fn full_env_var(var: &str) -> Option<String> {
+        match var {
+            "HOME" => Some(HOME.to_string()),
+            "XDG_CONFIG_HOME" => Some(XDG_CONFIG_HOME.to_string()),
+            "XDG_CONFIG_DIRS" => Some(XDG_CONFIG_DIRS.to_string()),
+            "sysconfdir" => Some(SYSCONFDIR.to_string()),
+            _ => None
+        }
+    }
+
+    #[test]
+    fn test_cli() {
+        let lookup = ConfigLookup::new_custom(
+            Some(PathBuf::from(CLI_CONFIG)),
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES.contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(CLI_CONFIG)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_no_cli() {
+        let lookup = ConfigLookup::new_custom(
+            Some(PathBuf::from(CLI_CONFIG)),
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[1..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            None,
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_env() {
+        let env_var = |var: &str| match var {
+            "BANGER_CONFIG" => Some(ENV_CONFIG.to_string()),
+            _ => full_env_var(var),
+        };
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[1..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(ENV_CONFIG)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_no_env() {
+        let env_var = |var: &str| match var {
+            "BANGER_CONFIG" => Some(ENV_CONFIG.to_string()),
+            _ => full_env_var(var),
+        };
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[2..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            None,
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_xdg_config_home() {
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[2..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(XDG_CONFIG_HOME_FILE)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_home() {
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[3..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(HOME_FILE)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_xdg_config_dirs() {
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[4..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(XDG_CONFIG_DIRS_FILE)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_sysconfdir() {
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[5..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(SYSCONFDIR_FILE)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_etc_xdg() {
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| CONFIG_FILES[6..].contains(&file.to_str().unwrap());
+        assert_eq!(
+            Some(PathBuf::from(ETC_XDG_FILE)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+
+    #[test]
+    fn test_binary_path() {
+        let lookup = ConfigLookup::new_custom(
+            None,
+            &full_env_var,
+            PathBuf::from(BINARY_DIR_FILE)
+        );
+        let file_exists = |file: &Path| file.to_str().unwrap() == BINARY_DIR_FILE;
+        assert_eq!(
+            Some(PathBuf::from(BINARY_DIR_FILE)),
+            lookup.lookup_custom(&|_| true, &file_exists)
+        );
+    }
+}
