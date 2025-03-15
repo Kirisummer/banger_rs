@@ -46,8 +46,10 @@ fn main() -> Result<(), String> {
     let args = Args::parse();
 
     // Parse config
-    let config_path =
-        xdg_config_location(Env::new(args.config)).ok_or("Failed to find config".to_string())?;
+    let config_path = match args.config {
+        Some(path) => path,
+        None => xdg_config_location(Env::new()).ok_or("Failed to find config".to_string())?,
+    };
     eprintln!("Reading config from {}", config_path.display());
     let content = fs::read_to_string(&config_path)
         .map_err(|err| format!("{}: {}", config_path.display(), err))?;
