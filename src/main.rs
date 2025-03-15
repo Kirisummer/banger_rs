@@ -6,7 +6,7 @@ use clap::Parser;
 use toml::Table;
 
 mod config_lookup;
-use crate::config_lookup::{Env, xdg_config_location};
+use crate::config_lookup::ConfigLookup;
 
 mod bang_storage;
 use crate::bang_storage::BangStorage;
@@ -46,11 +46,9 @@ fn main() -> Result<(), String> {
     let args = Args::parse();
 
     // Parse config
-    let config_path = match args.config {
-        Some(path) => path,
-        None => xdg_config_location(Env::new()).ok_or("Failed to find config".to_string())?,
-    };
+    let config_path = ConfigLookup::new(args.config).lookup().ok_or("Failed to find config".to_string())?;
     eprintln!("Reading config from {}", config_path.display());
+
     let content = fs::read_to_string(&config_path)
         .map_err(|err| format!("{}: {}", config_path.display(), err))?;
     let table = content.parse::<Table>().map_err(|err| format!("{err}"))?;
