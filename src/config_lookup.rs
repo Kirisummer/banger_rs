@@ -2,10 +2,15 @@ use std::env::{args, var};
 use std::path::{Path, PathBuf};
 
 pub struct Env {
+    /// Absolute path to home directory
     home_dir: Option<PathBuf>,
+    /// Absolute path to user config directory
     xdg_config_home: Option<PathBuf>,
+    /// List of absolute paths to user config directories
     xdg_config_dirs: Vec<PathBuf>,
+    /// Absolute path to system config directory
     sysconfdir: Option<PathBuf>,
+    /// Path to binary
     binary_path: PathBuf,
 }
 
@@ -50,36 +55,31 @@ pub fn xdg_config_location(env: Env) -> Option<PathBuf> {
         None
     }
 
+    macro_rules! try_return {
+        ($path:expr, $config_subpath:expr) => {
+            if let Some(config) = try_join($path, $config_subpath) {
+                return Some(config);
+            }
+        };
+    }
+
     const CONFIG_NAME: &str = "banger.toml";
     let config_subpath: PathBuf = ["banger", CONFIG_NAME].iter().collect();
     if let Some(path) = env.xdg_config_home {
-        if let Some(config) = try_join(path.as_path(), &config_subpath) {
-            return Some(config);
-        }
+        try_return!(path.as_path(), &config_subpath);
     }
     if let Some(path) = env.home_dir {
-        if let Some(config) = try_join(path.as_path(), &config_subpath) {
-            return Some(config);
-        }
+        try_return!(path.join(".config").as_path(), &config_subpath);
     }
     for path in env.xdg_config_dirs {
-        if let Some(config) = try_join(path.as_path(), &config_subpath) {
-            return Some(config);
-        }
+        try_return!(path.as_path(), &config_subpath);
     }
     if let Some(path) = env.sysconfdir {
-        if let Some(config) = try_join(path.as_path(), &config_subpath) {
-            return Some(config);
-        }
+        try_return!(path.as_path(), &config_subpath);
     }
-    if let Some(config) = try_join(Path::new("/etc/xdg"), &config_subpath) {
-        return Some(config);
-    }
-    if let Some(config) = try_join(
-        env.binary_path.parent().unwrap_or(Path::new("/")),
-        Path::new(CONFIG_NAME),
-    ) {
-        return Some(config);
+    try_return!(Path::new("/etc/xdg"), &config_subpath);
+    if let Some(path) = env.binary_path.parent() {
+        try_return!(path, Path::new(CONFIG_NAME));
     }
     None
 }
