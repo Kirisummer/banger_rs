@@ -5,4 +5,4 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.32", features = ["derive", "unicode"] }
-toml = "0.8.20"
+toml = { version = "0.8.20", features = ["display"] }
