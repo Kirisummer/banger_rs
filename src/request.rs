@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum QueryErr {
     BadRequest(String),
     MethodNotAllowed,
@@ -163,4 +164,110 @@ fn decode(text: &str) -> Result<Vec<String>, String> {
     state.flush().put_into(&mut utf8_parts);
 
     decode_parts(utf8_parts)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    mod decode {
+        use super::*;
+
+        #[test]
+        fn success() {
+            const ENCODED: &str = "%D0%BF%LY%D1%80%D0%B8%D0%B2%D1%96%D1%82%20ab%%cd+%2B%F0%9F%98%83";
+            assert_eq!(vec![
+                "п%LYривіт", // UTF8 characters, "LY" is not a valid hex number
+                             // %20 delimiter
+                "ab%%cd",    // % is not a hex digit
+                             // + delimiter
+                "+😃"        // literal + (%2B), emoji
+            ], decode(ENCODED).unwrap());
+        }
+
+        #[test]
+        fn decode_utf_error() {
+            const ENCODED: &str = "%D0+%BF"; // 'п' split into two parts, causes UTF8 decode error
+            assert!(decode(ENCODED).is_err());
+        }
+    }
+
+    mod request {
+        use super::*;
+
+        #[test]
+        fn success() {
+            const METHODS: [&str; 2] = ["GET", "HEAD"];
+            const TARGET: &str = "/hello+%D0%BF%D1%80%D0%B8%D0%B2%D1%96%D1%82";
+            const PROTOCOLS: [&str; 4] = ["HTTP/1.1", "HTTP/1.0", "HTTPSOMETHING", ""];
+            const HEADERS: [&str; 2] = ["Header1: Value1\r\nHeader2: Value2", ""];
+            const BODIES: [&str; 2] = ["BODY", ""];
+
+            let query = vec!["hello".to_string(), "привіт".to_string()];
+
+            for method in METHODS {
+                for protocol in PROTOCOLS {
+                    for headers in HEADERS {
+                        for body in BODIES {
+                            let request = format!("{method} {TARGET} {protocol}\r\n{headers}\r\n\r\n{body}");
+                            assert_eq!(query, parse_query(&request).unwrap());
+                        }
+                    }
+                }
+            }
+        }
+
+        #[test]
+        fn no_body_split() {
+            const REQUEST: &str = "GET /target HTTP/1.1\r\nHeader: Value";
+            let parse_error = parse_query(REQUEST).unwrap_err();
+            assert!(matches!(
+                    parse_error,
+                    QueryErr::BadRequest(ref err) if err == "Missing header-body split"
+            ), "{:?}", parse_error);
+        }
+
+        #[test]
+        fn invalid_start_line() {
+            const REQUEST: &str = "invalid_start-line\r\n\r\n";
+            let parse_error = parse_query(REQUEST).unwrap_err();
+            assert!(matches!(
+                    parse_error,
+                    QueryErr::BadRequest(ref err) if err == "Invalid start-line"
+            ), "{:?}", parse_error);
+        }
+
+        #[test]
+        fn method_not_allowed() {
+            const REQUEST: &str = "INVALID /target HTTP/1.1\r\n\r\n";
+            let parse_error = parse_query(REQUEST).unwrap_err();
+            assert!(matches!(
+                    parse_error,
+                    QueryErr::MethodNotAllowed
+            ), "{:?}", parse_error);
+        }
+
+        #[test]
+        fn invalid_protocol() {
+            const REQUEST: &str = "GET /target INVALID\r\n\r\n";
+            let parse_error = parse_query(REQUEST).unwrap_err();
+            assert!(matches!(
+                    parse_error,
+                    QueryErr::BadRequest(ref err) if err == "Invalid protocol"
+            ), "{:?}", parse_error);
+        }
+
+        #[test]
+        fn invalid_target() {
+            const REQUEST1: &str = "GET target HTTP/1.1\r\n\r\n";
+            const REQUEST2: &str = "GET target HTTP/1.1\r\n\r\n";
+            for request in [REQUEST1, REQUEST2] {
+                let parse_error = parse_query(request).unwrap_err();
+                assert!(matches!(
+                        parse_error,
+                        QueryErr::BadRequest(ref err) if err == "Missing leading slash in target"
+                ), "{:?}", parse_error);
+            }
+        }
+    }
 }
