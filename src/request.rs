@@ -120,14 +120,14 @@ impl Decoded {
             Decoded::Byte(byte) => match &mut utf8_parts.last_mut() {
                 Some(part) => part.push(*byte),
                 None => utf8_parts.push(vec![*byte]),
-            }
+            },
             Decoded::FailedPercent(byte) => match &mut utf8_parts.last_mut() {
                 Some(part) => part.extend_from_slice(&[PERCENT, *byte]),
                 None => utf8_parts.push(vec![PERCENT, *byte]),
             },
             Decoded::FailedPercent2(byte1, byte2) => match &mut utf8_parts.last_mut() {
                 Some(part) => part.extend_from_slice(&[PERCENT, *byte1, *byte2]),
-                None => utf8_parts.push(vec![PERCENT, *byte1, *byte2])
+                None => utf8_parts.push(vec![PERCENT, *byte1, *byte2]),
             },
             Decoded::Delim => utf8_parts.push(Vec::new()),
             Decoded::None => (),
@@ -175,14 +175,18 @@ mod tests {
 
         #[test]
         fn success() {
-            const ENCODED: &str = "%D0%BF%LY%D1%80%D0%B8%D0%B2%D1%96%D1%82%20ab%%cd+%2B%F0%9F%98%83";
-            assert_eq!(vec![
-                "п%LYривіт", // UTF8 characters, "LY" is not a valid hex number
-                             // %20 delimiter
-                "ab%%cd",    // % is not a hex digit
-                             // + delimiter
-                "+😃"        // literal + (%2B), emoji
-            ], decode(ENCODED).unwrap());
+            const ENCODED: &str =
+                "%D0%BF%LY%D1%80%D0%B8%D0%B2%D1%96%D1%82%20ab%%cd+%2B%F0%9F%98%83";
+            assert_eq!(
+                vec![
+                    "п%LYривіт", // UTF8 characters, "LY" is not a valid hex number
+                    // %20 delimiter
+                    "ab%%cd", // % is not a hex digit
+                    // + delimiter
+                    "+😃" // literal + (%2B), emoji
+                ],
+                decode(ENCODED).unwrap()
+            );
         }
 
         #[test]
@@ -209,7 +213,8 @@ mod tests {
                 for protocol in PROTOCOLS {
                     for headers in HEADERS {
                         for body in BODIES {
-                            let request = format!("{method} {TARGET} {protocol}\r\n{headers}\r\n\r\n{body}");
+                            let request =
+                                format!("{method} {TARGET} {protocol}\r\n{headers}\r\n\r\n{body}");
                             assert_eq!(query, parse_query(&request).unwrap());
                         }
                     }
@@ -221,40 +226,53 @@ mod tests {
         fn no_body_split() {
             const REQUEST: &str = "GET /target HTTP/1.1\r\nHeader: Value";
             let parse_error = parse_query(REQUEST).unwrap_err();
-            assert!(matches!(
-                    parse_error,
-                    QueryErr::BadRequest(ref err) if err == "Missing header-body split"
-            ), "{:?}", parse_error);
+            assert!(
+                matches!(
+                        parse_error,
+                        QueryErr::BadRequest(ref err) if err == "Missing header-body split"
+                ),
+                "{:?}",
+                parse_error
+            );
         }
 
         #[test]
         fn invalid_start_line() {
             const REQUEST: &str = "invalid_start-line\r\n\r\n";
             let parse_error = parse_query(REQUEST).unwrap_err();
-            assert!(matches!(
-                    parse_error,
-                    QueryErr::BadRequest(ref err) if err == "Invalid start-line"
-            ), "{:?}", parse_error);
+            assert!(
+                matches!(
+                        parse_error,
+                        QueryErr::BadRequest(ref err) if err == "Invalid start-line"
+                ),
+                "{:?}",
+                parse_error
+            );
         }
 
         #[test]
         fn method_not_allowed() {
             const REQUEST: &str = "INVALID /target HTTP/1.1\r\n\r\n";
             let parse_error = parse_query(REQUEST).unwrap_err();
-            assert!(matches!(
-                    parse_error,
-                    QueryErr::MethodNotAllowed
-            ), "{:?}", parse_error);
+            assert!(
+                matches!(parse_error, QueryErr::MethodNotAllowed),
+                "{:?}",
+                parse_error
+            );
         }
 
         #[test]
         fn invalid_protocol() {
             const REQUEST: &str = "GET /target INVALID\r\n\r\n";
             let parse_error = parse_query(REQUEST).unwrap_err();
-            assert!(matches!(
-                    parse_error,
-                    QueryErr::BadRequest(ref err) if err == "Invalid protocol"
-            ), "{:?}", parse_error);
+            assert!(
+                matches!(
+                        parse_error,
+                        QueryErr::BadRequest(ref err) if err == "Invalid protocol"
+                ),
+                "{:?}",
+                parse_error
+            );
         }
 
         #[test]
@@ -263,10 +281,14 @@ mod tests {
             const REQUEST2: &str = "GET target HTTP/1.1\r\n\r\n";
             for request in [REQUEST1, REQUEST2] {
                 let parse_error = parse_query(request).unwrap_err();
-                assert!(matches!(
-                        parse_error,
-                        QueryErr::BadRequest(ref err) if err == "Missing leading slash in target"
-                ), "{:?}", parse_error);
+                assert!(
+                    matches!(
+                            parse_error,
+                            QueryErr::BadRequest(ref err) if err == "Missing leading slash in target"
+                    ),
+                    "{:?}",
+                    parse_error
+                );
             }
         }
     }
