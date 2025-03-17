@@ -108,3 +108,46 @@ impl Response {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn encode_success() {
+        assert_eq!(
+            "abcd%D0%BF%D1%80%D0%B8%D0%B2%D1%96%D1%82%F0%9F%98%83%21%23%24%26%22%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D".to_string(),
+            encode("abcdпривіт😃!#$&\"'()*+,/:;=?@[]")
+        );
+    }
+
+    #[test]
+    fn response_success() {
+        let response = Response::new("PROTO", StatusCode::SeeOther)
+            .header("Header1", "Value1")
+            .header("Header2", "Value2")
+            .body("BODY")
+            .make();
+
+        const TEMPLATE: &str = "PROTO 303 See Other\r\nHeader{}: Value{}\r\nHeader{}: Value{}\r\n\r\nBODY";
+        assert!(
+            TEMPLATE.replacen("{}", "1", 2).replacen("{}", "2", 2) == response
+            || TEMPLATE.replacen("{}", "2", 2).replacen("{}", "1", 2) == response);
+    }
+
+    #[test]
+    fn response_bad_request() {
+        let response = Response::new("PROTO", StatusCode::BadRequest)
+            .body("Error description")
+            .make();
+        assert_eq!("PROTO 400 Bad Request\r\n\r\nError description", response);
+    }
+
+    #[test]
+    fn response_method_not_allowed() {
+        let response = Response::new("PROTO", StatusCode::MethodNotAllowed)
+            .header("Allow", "Methods")
+            .make();
+        assert_eq!("PROTO 405 Method Not Allowed\r\nAllow: Methods\r\n\r\n", response);
+    }
+}
