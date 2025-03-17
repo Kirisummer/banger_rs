@@ -54,7 +54,7 @@ fn main() -> Result<(), String> {
     let content = fs::read_to_string(&config_path)
         .map_err(|err| format!("{}: {}", config_path.display(), err))?;
     let table = content.parse::<Table>().map_err(|err| format!("{err}"))?;
-    let storage = BangStorage::from_table(&table)?;
+    let storage = BangStorage::from_table(&table).map_err(|err| format!("{err}"))?;
 
     // Serve
     let listen_address = match args.address {
