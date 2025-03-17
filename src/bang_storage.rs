@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use toml::Table;
 
+#[derive(Debug)]
 pub struct BangStorage {
     pub bangs: HashMap<String, String>,
     pub default: String,
@@ -100,7 +101,10 @@ impl BangStorage {
                     .filter(|key: &&String| *key != "aliases" || *key != "query")
                     .cloned()
                     .collect();
-                return Result::Err(ParseErr::Bang(Kind::InvalidValue(format!("{:?}", extra_items))));
+                return Result::Err(ParseErr::Bang(Kind::InvalidValue(format!(
+                    "{:?}",
+                    extra_items
+                ))));
             }
 
             for alias_entry in aliases {
@@ -128,5 +132,213 @@ impl BangStorage {
             bangs: alias_map,
             default: default,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn success() {
+        const CONTENT: &str = "
+            default='duckduckgo'
+
+            [[bangs]]
+            aliases = ['duckduckgo', 'ddg']
+            query = 'https://duckduckgo.com/?q={}'
+
+            [[bangs]]
+            aliases = ['вікі', 'в', 'ukwiki']
+            query = 'https://uk.wikipedia.org/w/?search={}'";
+        let table: Table = CONTENT.parse().unwrap();
+        let storage = BangStorage::from_table(&table).unwrap();
+        assert_eq!(storage.default, "duckduckgo");
+        assert_eq!(
+            storage.bangs,
+            HashMap::<String, String>::from([
+                (
+                    "duckduckgo".to_string(),
+                    "https://duckduckgo.com/?q={}".to_string()
+                ),
+                (
+                    "ddg".to_string(),
+                    "https://duckduckgo.com/?q={}".to_string()
+                ),
+                (
+                    "вікі".to_string(),
+                    "https://uk.wikipedia.org/w/?search={}".to_string()
+                ),
+                (
+                    "в".to_string(),
+                    "https://uk.wikipedia.org/w/?search={}".to_string()
+                ),
+                (
+                    "ukwiki".to_string(),
+                    "https://uk.wikipedia.org/w/?search={}".to_string()
+                ),
+            ])
+        );
+    }
+
+    mod default {
+        use super::*;
+
+        #[test]
+        fn missing() {
+            const CONTENT: &str = "
+                [[bangs]]
+                aliases = ['duckduckgo', 'ddg']
+                query = 'https://duckduckgo.com/?q={}'";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::DefaultBang(Kind::Missing(_))));
+        }
+
+        #[test]
+        fn wrong_type() {
+            const CONTENT: &str = "
+                default = 123
+                [[bangs]]
+                aliases = ['duckduckgo', 'ddg']
+                query = 'https://duckduckgo.com/?q={}'";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::DefaultBang(Kind::WrongType(_))));
+        }
+
+        #[test]
+        fn invalid() {
+            const CONTENT: &str = "
+                default = 'dddg'
+                [[bangs]]
+                aliases = ['duckduckgo', 'ddg']
+                query = 'https://duckduckgo.com/?q={}'";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(
+                error,
+                ParseErr::DefaultBang(Kind::InvalidValue(_))
+            ));
+        }
+    }
+
+    mod bangs {
+        use super::*;
+
+        #[test]
+        fn missing() {
+            const CONTENT: &str = "default = 'ddg'";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Bangs(Kind::Missing(_))));
+        }
+
+        #[test]
+        fn wrong_type() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                bangs = 123";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Bangs(Kind::WrongType(_))));
+        }
+    }
+
+    mod bang {
+        use super::*;
+
+        #[test]
+        fn wrong_type() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                bangs = [123]";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Bang(Kind::WrongType(_))));
+        }
+
+        #[test]
+        fn extra_items() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                [[bangs]]
+                query = 'https://duckduckgo.com/?q={}'
+                aliases = ['ddg', 'duckduckgo']
+                extra = 123";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Bang(Kind::InvalidValue(_))));
+        }
+    }
+
+    mod query {
+        use super::*;
+
+        #[test]
+        fn missing() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                [[bangs]]
+                aliases = ['ddg', 'duckduckgo']";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Query(Kind::Missing(_))));
+        }
+
+        #[test]
+        fn wrong_type() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                [[bangs]]
+                query = 123
+                aliases = ['ddg', 'duckduckgo']";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Query(Kind::WrongType(_))));
+        }
+    }
+
+    mod aliases {
+        use super::*;
+
+        #[test]
+        fn missing() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                [[bangs]]
+                query = 'https://duckduckgo.com/?q={}'";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Aliases(Kind::Missing(_))));
+        }
+
+        #[test]
+        fn wrong_type() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                [[bangs]]
+                query = 'https://duckduckgo.com/?q={}'
+                aliases = 123";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Aliases(Kind::WrongType(_))));
+        }
+    }
+
+    mod alias {
+        use super::*;
+
+        #[test]
+        fn wrong_type() {
+            const CONTENT: &str = "
+                default = 'ddg'
+                [[bangs]]
+                query = 'https://duckduckgo.com/?q={}'
+                aliases = ['ddg', 'duckduckgo', 123]";
+            let table: Table = CONTENT.parse().unwrap();
+            let error = BangStorage::from_table(&table).unwrap_err();
+            assert!(matches!(error, ParseErr::Alias(Kind::WrongType(_))));
+        }
     }
 }
