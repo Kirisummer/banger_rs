@@ -129,10 +129,12 @@ mod tests {
             .body("BODY")
             .make();
 
-        const TEMPLATE: &str = "PROTO 303 See Other\r\nHeader{}: Value{}\r\nHeader{}: Value{}\r\n\r\nBODY";
+        const TEMPLATE: &str =
+            "PROTO 303 See Other\r\nHeader{}: Value{}\r\nHeader{}: Value{}\r\n\r\nBODY";
         assert!(
             TEMPLATE.replacen("{}", "1", 2).replacen("{}", "2", 2) == response
-            || TEMPLATE.replacen("{}", "2", 2).replacen("{}", "1", 2) == response);
+                || TEMPLATE.replacen("{}", "2", 2).replacen("{}", "1", 2) == response
+        );
     }
 
     #[test]
@@ -148,6 +150,9 @@ mod tests {
         let response = Response::new("PROTO", StatusCode::MethodNotAllowed)
             .header("Allow", "Methods")
             .make();
-        assert_eq!("PROTO 405 Method Not Allowed\r\nAllow: Methods\r\n\r\n", response);
+        assert_eq!(
+            "PROTO 405 Method Not Allowed\r\nAllow: Methods\r\n\r\n",
+            response
+        );
     }
 }
