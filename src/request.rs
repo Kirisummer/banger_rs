@@ -58,26 +58,6 @@ pub fn parse_query(request: &str) -> Result<Vec<String>, QueryErr> {
     decode(encoded).map_err(|err| QueryErr::BadRequest(err))
 }
 
-fn decode(text: &str) -> Result<Vec<String>, String> {
-    if !text.is_ascii() {
-        return Err(format!("Not an ascii string: `{}`", text));
-    }
-
-    let mut utf8_parts: Vec<Vec<u8>> = Vec::new();
-    let mut state = State::None;
-
-    for ch in text.chars() {
-        let (new_state, decoded) = decode_char(state, ch)?;
-        state = new_state;
-        put_decoded(&mut utf8_parts, decoded);
-    }
-
-    match state {
-        State::None => decode_parts(utf8_parts),
-        _ => Err(format!("Unexpected end of text: `{}`", text)),
-    }
-}
-
 enum State {
     Percent,
     Half(u8),
@@ -85,47 +65,72 @@ enum State {
 }
 
 enum Decoded {
+    /// A decoded byte
     Byte(u8),
+    /// Percent + non-hex-digit byte
+    FailedPercent(u8),
+    /// Percent + two non-hex-digit bytes
+    FailedPercent2(u8, u8),
+    /// End of previous part
     Delim,
+    /// Nothing was decoded yet
     None,
 }
 
-fn decode_char(state: State, ch: char) -> Result<(State, Decoded), String> {
-    match state {
-        State::None => match ch {
-            '%' => Ok((State::Percent, Decoded::None)),
-            '+' => Ok((State::None, Decoded::Delim)),
-            _ => Ok((State::None, Decoded::Byte(ch as u8))),
-        },
-        State::Percent => match ch.to_digit(16) {
-            Some(half) => Ok((State::Half(half as u8), Decoded::None)),
-            None => Err(format!("Illegal `{}` after `%`", ch)),
-        },
-        State::Half(half) => match ch.to_digit(16) {
-            Some(second_half) => {
-                let byte = (half << 4) | (second_half as u8);
-                match byte as char {
-                    ' ' => Ok((State::None, Decoded::Delim)),
-                    _ => Ok((State::None, Decoded::Byte(byte))),
+impl State {
+    fn decode_next(&self, ch: char) -> (State, Decoded) {
+        // https://url.spec.whatwg.org/#percent-encoded-bytes
+        match self {
+            State::None => match ch {
+                '%' => (State::Percent, Decoded::None),
+                '+' => (State::None, Decoded::Delim),
+                _ => (State::None, Decoded::Byte(ch as u8)),
+            },
+            State::Percent => match ch.to_digit(16) {
+                Some(half) => (State::Half(half as u8), Decoded::None),
+                None => (State::None, Decoded::FailedPercent(ch as u8)),
+            },
+            State::Half(half) => match ch.to_digit(16) {
+                Some(second_half) => {
+                    let byte = (half << 4) | (second_half as u8);
+                    match byte as char {
+                        ' ' => (State::None, Decoded::Delim),
+                        _ => (State::None, Decoded::Byte(byte)),
+                    }
                 }
-            }
-            None => Err(format!(
-                "Illegal `{}` after `%{}`",
-                ch,
-                char::from_digit(half.into(), 16).unwrap(),
-            )),
-        },
+                None => (State::None, Decoded::FailedPercent2(*half, ch as u8)),
+            },
+        }
+    }
+
+    fn flush(&self) -> Decoded {
+        match self {
+            State::None => Decoded::None,
+            State::Percent => Decoded::Byte('%' as u8),
+            State::Half(byte) => Decoded::FailedPercent(*byte),
+        }
     }
 }
 
-fn put_decoded(utf8_parts: &mut Vec<Vec<u8>>, decoded: Decoded) {
-    match decoded {
-        Decoded::Byte(byte) => match &mut utf8_parts.last_mut() {
-            Some(part) => part.push(byte),
-            None => utf8_parts.push(vec![byte]),
-        },
-        Decoded::Delim => utf8_parts.push(Vec::new()),
-        Decoded::None => (),
+impl Decoded {
+    fn put_into(&self, utf8_parts: &mut Vec<Vec<u8>>) {
+        const PERCENT: u8 = '%' as u8;
+        match self {
+            Decoded::Byte(byte) => match &mut utf8_parts.last_mut() {
+                Some(part) => part.push(*byte),
+                None => utf8_parts.push(vec![*byte]),
+            }
+            Decoded::FailedPercent(byte) => match &mut utf8_parts.last_mut() {
+                Some(part) => part.extend_from_slice(&[PERCENT, *byte]),
+                None => utf8_parts.push(vec![PERCENT, *byte]),
+            },
+            Decoded::FailedPercent2(byte1, byte2) => match &mut utf8_parts.last_mut() {
+                Some(part) => part.extend_from_slice(&[PERCENT, *byte1, *byte2]),
+                None => utf8_parts.push(vec![PERCENT, *byte1, *byte2])
+            },
+            Decoded::Delim => utf8_parts.push(Vec::new()),
+            Decoded::None => (),
+        }
     }
 }
 
@@ -139,4 +144,23 @@ fn decode_parts(utf8_parts: Vec<Vec<u8>>) -> Result<Vec<String>, String> {
         }
     }
     Ok(decoded_parts)
+}
+
+fn decode(text: &str) -> Result<Vec<String>, String> {
+    if !text.is_ascii() {
+        return Err(format!("Not an ascii string: `{}`", text));
+    }
+
+    let mut utf8_parts: Vec<Vec<u8>> = Vec::new();
+    let mut state = State::None;
+
+    for ch in text.chars() {
+        let (new_state, decoded) = state.decode_next(ch);
+        state = new_state;
+        decoded.put_into(&mut utf8_parts);
+    }
+
+    state.flush().put_into(&mut utf8_parts);
+
+    decode_parts(utf8_parts)
 }
