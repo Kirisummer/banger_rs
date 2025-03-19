@@ -158,3 +158,62 @@ pub fn serve(storage: BangStorage, address: SocketAddr) -> Result<(), String> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn process_query_success() {
+        let bangs = BangStorage {
+            bangs: HashMap::from([("alias".to_string(), "url?q={}".to_string())]),
+            default: "alias".to_string(),
+        };
+        let query = vec![
+            "inserted".to_string(),
+            "!alias".to_string(),
+            "values".to_string(),
+        ];
+        assert_eq!(
+            "url?q=inserted+values",
+            process_query(&bangs, query, &encode)
+        );
+    }
+
+    #[test]
+    fn process_query_default() {
+        let bangs = BangStorage {
+            bangs: HashMap::from([
+                ("alias".to_string(), "url?q={}".to_string()),
+                ("default".to_string(), "default?q={}".to_string()),
+            ]),
+            default: "default".to_string(),
+        };
+        let query = vec!["inserted".to_string(), "values".to_string()];
+        assert_eq!(
+            "default?q=inserted+values",
+            process_query(&bangs, query, &encode)
+        );
+    }
+
+    #[test]
+    fn process_query_missing_bang() {
+        let bangs = BangStorage {
+            bangs: HashMap::from([
+                ("alias".to_string(), "url?q={}".to_string()),
+                ("default".to_string(), "default?q={}".to_string()),
+            ]),
+            default: "default".to_string(),
+        };
+        let query = vec![
+            "inserted".to_string(),
+            "!invalid".to_string(),
+            "values".to_string(),
+        ];
+        assert_eq!(
+            "default?q=inserted+%21invalid+values",
+            process_query(&bangs, query, &encode)
+        );
+    }
+}
