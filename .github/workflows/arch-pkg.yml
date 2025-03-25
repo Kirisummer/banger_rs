@@ -1,10 +1,17 @@
-name: Arch Package
+name: Build Arch Package
 
 on:
   push:
     branches: [ "main" ]
+    paths: &paths
+      - '.github/workflows/arch-pkg.yml'
+      - 'src/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
   pull_request:
     branches: [ "main" ]
+    paths:
+      <: *paths
 
 jobs:
   build:
