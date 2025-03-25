@@ -15,7 +15,9 @@ jobs:
         CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
+      - name: Check passwd
+        run: cat /etc/passwd
       - name: Build package
-        run: su nobody -s /bin/sh -c makepkg
+        run: su nobody -s /bin/sh -c 'makepkg --syncdeps --noconfirm'
       - name: Install package
-        run: pacman -U banger_rs-*-x86_64.pkg.tar.zst
+        run: pacman -U banger_rs-*-x86_64.pkg.tar.zst --noconfirm
