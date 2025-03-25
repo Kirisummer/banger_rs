@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: pacman -Syu --noconfirm $(grep '\(make\)\?depends' PKGBUILD | cut -d= -f2 | sed 's/[()]//g')
       - name: Create user for makepkg
-        run: useradd makepkg
+        run: useradd -m makepkg
       - name: Allow makepkg to build in current dir
         run: chown -R makepkg .
       - name: Build package
