@@ -49,7 +49,7 @@ Each bang table consists of `aliases` and `query` pairs.
     Each bang must be unique to one bang table.
 - `query` is a string that contains a URL, that the user will be redirected to
     when the bang is used. Bangs will be stripped,
-    and %s will be replaced with search terms.
+    and `{}` will be replaced with search terms.
 
 ### Example configuration
 ```toml
@@ -77,22 +77,40 @@ Here, we can see three configurations, with DuckDuckGo selected as a default:
 
 Address is set to 127.0.0.1 with port 8080.
 
-## Building and running
-Can be built with `cargo`, for example:
+## Installing
+
+### ArchLinux:
 ```shell
-cargo build
+# Build package
+makepkg --syncdeps
+# Install package
+sudo pacman -U banger_rs*.tar.zst
 ```
 
-Program takes 2 CLI arguments: config file and address to bind to. Examples:
+### Manually on \*nix
+To install to ~/.cargo/bin:
 ```shell
-# Lookup config
-cargo run
-# Override address
-cargo run --address 0.0.0.0:8080
-# Read address from config
-cargo run -- -c banger.toml
-# Specify address as CLI argument
-cargo run -- --config banger.toml --address 0.0.0.0:8080
-cargo run -- -c banger.toml -a 0.0.0.0:8080
+cargo install
+```
+Other paths and options may be chosen: check [`cargo install` documentation](https://doc.rust-lang.org/cargo/commands/cargo-install.html)
+
+Alternatively:
+```shell
+cargo build --release
+cp target/release/banger_rs <somewhere_in_your_path>
 ```
 
+## Running
+Program takes 2 optional CLI arguments: config file and address to bind to. Examples:
+```shell
+# Look up config and take address from config
+banger_rs
+# Look up config and override address
+banger_rs --address 0.0.0.0:8080
+# Select config manually
+banger_rs -c banger.toml
+# Select config manually and override address
+banger_rs --config banger.toml --address 0.0.0.0:8080
+# Short options may be used
+banger_rs -c banger.toml -a 0.0.0.0:8080
+```
