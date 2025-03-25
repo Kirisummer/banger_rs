@@ -1,0 +1,21 @@
+name: Arch Package
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+      env:
+        CARGO_TERM_COLOR: always
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build package
+        run: makepkg
+      - name: Install package
+        run: pacman -U banger_rs-*-x86_64.pkg.tar.zst
