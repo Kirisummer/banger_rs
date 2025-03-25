@@ -16,6 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build package
-        run: useradd build && chown build $BUILDDIR && su build -s /bin/sh -c 'makepkg --syncdeps --noconfirm'
+        run: useradd build && chown build . && su build -s /bin/sh -c 'makepkg --syncdeps --noconfirm'
       - name: Install package
         run: pacman -U banger_rs-*-x86_64.pkg.tar.zst --noconfirm
