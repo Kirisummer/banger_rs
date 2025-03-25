@@ -26,6 +26,8 @@ check() {
 
 package() {
     install -Dm0755 -t "$pkgdir/usr/bin" "../target/release/$pkgname"
-    pwd
     install -Dm644 ../LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 ../banger.service "${pkgdir}/usr/lib/systemd/system/banger.service"
+    install -Dm644 ../banger.service "${pkgdir}/usr/lib/systemd/user/banger.service"
+    install -Dm644 ../banger.toml "${pkgdir}/etc/xdg/banger/banger.toml"
 }
