@@ -98,6 +98,8 @@ cp target/release/banger_rs <somewhere_in_your_path>
 ```
 
 ## Running
+
+### Manually
 Program takes 2 optional CLI arguments: config file and address to bind to. Examples:
 ```shell
 # Look up config and take address from config
@@ -110,4 +112,24 @@ banger_rs -c banger.toml
 banger_rs --config banger.toml --address 0.0.0.0:8080
 # Short options may be used
 banger_rs -c banger.toml -a 0.0.0.0:8080
+```
+
+### As systemd service
+
+#### With package installed
+```shell
+# Run at system startup
+sudo systemctl enable --now banger
+# Run at first user login
+systemctl --user enable --now banger
+```
+
+#### Manually
+You may want to edit path to the binary in the service file before running commands.
+
+```shell
+# Run at system startup
+sudo systemctl enable --now ./banger.service
+# Run at first user login
+systemctl --user enable --now ./banger.service
 ```
