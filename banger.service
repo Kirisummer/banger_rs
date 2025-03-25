@@ -1,0 +1,9 @@
+[Unit]
+Description=Proxy search engine that imitates DuckDuckGo's bangs
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/banger_rs
+
+[Install]
+WantedBy=default.target
