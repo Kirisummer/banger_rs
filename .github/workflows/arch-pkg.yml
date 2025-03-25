@@ -16,6 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build package
-        run: makepkg
+        run: su nobody -s /bin/sh -c makepkg
       - name: Install package
         run: pacman -U banger_rs-*-x86_64.pkg.tar.zst
