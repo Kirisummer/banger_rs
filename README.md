@@ -81,10 +81,7 @@ Address is set to 127.0.0.1 with port 8080.
 
 ### ArchLinux:
 ```shell
-# Build package
-makepkg --syncdeps
-# Install package
-sudo pacman -U banger_rs*.tar.zst
+makepkg -si
 ```
 
 ### Manually on \*nix
