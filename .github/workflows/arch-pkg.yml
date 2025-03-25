@@ -15,7 +15,13 @@ jobs:
         CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm $(grep '\(make\)\?depends' PKGBUILD | cut -d= -f2 | sed 's/[()]//g')
+      - name: Create user for makepkg
+        run: useradd makepkg
+      - name: Allow makepkg to build in current dir
+        run: chown makepkg .
       - name: Build package
-        run: useradd build && chown build . && su build -s /bin/sh -c 'makepkg --syncdeps --noconfirm'
+        run: su build -s /bin/sh -c 'makepkg --noconfirm'
       - name: Install package
         run: pacman -U banger_rs-*-x86_64.pkg.tar.zst --noconfirm
