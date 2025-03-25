@@ -20,8 +20,8 @@ jobs:
       - name: Create user for makepkg
         run: useradd makepkg
       - name: Allow makepkg to build in current dir
-        run: chown makepkg .
+        run: chown -R makepkg .
       - name: Build package
-        run: su makepkg -s /bin/sh -c 'makepkg --noconfirm'
+        run: su makepkg -s /bin/sh -c 'makepkg'
       - name: Install package
         run: pacman -U banger_rs-*-x86_64.pkg.tar.zst --noconfirm
